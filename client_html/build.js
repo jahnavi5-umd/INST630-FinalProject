@@ -36,6 +36,37 @@ indexHtml = indexHtml.replace(
 );
 fs.writeFileSync(path.join(distDir, "index.html"), indexHtml, "utf8");
 
+// Write a pure-static vercel.json into dist/ for direct static deploys
+const distVercelJson = {
+  $schema: "https://openapi.vercel.sh/vercel.json",
+  headers: [
+    {
+      source: "/(.*)",
+      headers: [
+        {
+          key: "Cross-Origin-Opener-Policy",
+          value: "same-origin-allow-popups",
+        },
+      ],
+    },
+  ],
+  rewrites: [
+    {
+      source: "/api/(.*)",
+      destination: "https://terplink-backend.vercel.app/api/$1",
+    },
+    {
+      source: "/((?!api/|css/|js/|images/|favicon\\.svg|manifest\\.webmanifest).*)",
+      destination: "/index.html",
+    },
+  ],
+};
+fs.writeFileSync(
+  path.join(distDir, "vercel.json"),
+  JSON.stringify(distVercelJson, null, 2),
+  "utf8",
+);
+
 console.log(
   `[client_html] Built static bundle to dist/ (API mode: ${apiUrl || "same-origin /api rewrite"})`,
 );
