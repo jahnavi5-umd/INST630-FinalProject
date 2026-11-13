@@ -4,9 +4,11 @@ import { User } from "./models/User.js";
 import { Event } from "./models/Event.js";
 import { Organization } from "./models/Organization.js";
 import { attachEmbeddedStore } from "./embeddedDb.js";
+import { seedDatabase } from "./seed/seedDatabase.js";
 
 let connected = false;
 let connectPromise = null;
+let initPromise = null;
 
 export async function connectDB() {
   if (connected && (!config.mongoUri || mongoose.connection.readyState === 1)) {
@@ -42,6 +44,20 @@ export async function connectDB() {
   } finally {
     connectPromise = null;
   }
+}
+
+export function ensureInitialized() {
+  if (connected && (!config.mongoUri || mongoose.connection.readyState === 1) && initPromise) {
+    return initPromise;
+  }
+  initPromise = (async () => {
+    await connectDB();
+    await seedDatabase(); // no-op when events already exist
+  })().catch((err) => {
+    initPromise = null;
+    throw err;
+  });
+  return initPromise;
 }
 
 export async function disconnectDB() {

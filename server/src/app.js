@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import { config } from "./config.js";
+import { ensureInitialized } from "./db.js";
 import { requireAuth } from "./middleware/auth.js";
 import { csrfGuard, errorHandler, notFound } from "./middleware/security.js";
 import authRoutes from "./routes/auth.js";
@@ -86,6 +87,14 @@ export function createApp() {
   });
 
   api.get("/health", (req, res) => res.json({ ok: true }));
+  api.use(async (req, res, next) => {
+    try {
+      await ensureInitialized();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
   api.use("/auth", authRoutes);
   api.use("/events", requireAuth, eventRoutes);
   api.use("/organizations", requireAuth, orgRoutes);
@@ -104,3 +113,6 @@ export function createApp() {
   app.use(errorHandler);
   return app;
 }
+
+const app = createApp();
+export default app;

@@ -1,29 +1,9 @@
 import { config } from "./config.js";
-import { connectDB, disconnectDB } from "./db.js";
-import { createApp } from "./app.js";
-import { seedDatabase } from "./seed/seedDatabase.js";
+import { disconnectDB, ensureInitialized } from "./db.js";
+import app from "./app.js";
 
-const app = createApp();
-
-let initPromise = null;
-
-export function ensureInitialized() {
-  if (!initPromise) {
-    initPromise = (async () => {
-      await connectDB();
-      await seedDatabase(); // no-op when events already exist
-    })().catch((err) => {
-      initPromise = null;
-      throw err;
-    });
-  }
-  return initPromise;
-}
-
-export default async function handler(req, res) {
-  await ensureInitialized();
-  return app(req, res);
-}
+export { ensureInitialized };
+export default app;
 
 if (!process.env.VERCEL) {
   await ensureInitialized();
