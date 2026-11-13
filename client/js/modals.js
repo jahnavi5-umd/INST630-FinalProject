@@ -3,6 +3,12 @@ import { createDropdown } from "./dropdown.js";
 import {
   shortDate,
   timeOf,
+  timeRange,
+  dayNum,
+  monthAbbr,
+  formatMembers,
+  googleCalendarUrl,
+  downloadICS,
   escapeHtml,
   escapeAttr,
   EVENT_CATEGORIES,
@@ -50,6 +56,12 @@ function defaultStartValue() {
   return toLocalInputValue(d);
 }
 
+function campusMapsUrl(location) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${location}, University of Maryland, College Park, MD`,
+  )}`;
+}
+
 function bindModalDismiss(backdropEl, onClose) {
   const onKey = (e) => {
     if (e.key === "Escape") onClose();
@@ -68,7 +80,7 @@ function bindModalDismiss(backdropEl, onClose) {
 }
 
 // ============================================================================
-// 1. RSVP Modal
+// 1. Event Details & RSVP Modal
 // ============================================================================
 export function renderRsvpModal(container, { event, passCode, userName, onConfirm, onClose }) {
   container.innerHTML = "";
@@ -84,7 +96,7 @@ export function renderRsvpModal(container, { event, passCode, userName, onConfir
   dialog.className = "rsvp-modal";
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
-  dialog.setAttribute("aria-label", "Event RSVP");
+  dialog.setAttribute("aria-label", "Event Details and RSVP");
   dialog.tabIndex = -1;
 
   backdrop.appendChild(dialog);
@@ -104,18 +116,43 @@ export function renderRsvpModal(container, { event, passCode, userName, onConfir
       dialog.innerHTML = `
         <button class="modal-close" aria-label="Close">${icon("close")}</button>
         <div class="modal-icon">${icon("ticket", 27)}</div>
-        <p class="eyebrow">YOU’RE ALMOST THERE</p>
+        <p class="eyebrow">EVENT DETAILS · ${escapeHtml((event.category || "CAMPUS").toUpperCase())}</p>
         <h2>Save your spot</h2>
         <div class="modal-event">
           <img src="${escapeAttr(event.image)}" alt="" />
           <div>
             <b>${escapeHtml(event.title)}</b>
-            <span>${shortDate(event.startsAt)} · ${timeOf(event.startsAt)}</span>
+            <span>Hosted by ${escapeHtml(event.org)}</span>
+            <span>${shortDate(event.startsAt)} · ${timeRange(event.startsAt, event.endsAt)}</span>
             <span>${escapeHtml(event.location)}</span>
           </div>
         </div>
+        ${
+          event.description
+            ? `<p class="modal-event-desc">${escapeHtml(event.description)}</p>`
+            : ""
+        }
+        <div class="modal-event-meta-row">
+          <span class="modal-meta-pill">
+            ${icon("users", 14)}
+            ${event.attendees || 0} going${event.capacity ? ` · ${event.capacity} cap` : ""}
+          </span>
+          ${
+            event.note
+              ? `<span class="modal-meta-pill highlight">${escapeHtml(event.note)}</span>`
+              : ""
+          }
+          <a
+            class="modal-meta-pill map-link"
+            href="${escapeAttr(campusMapsUrl(event.location))}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ${icon("pin", 14)} Campus map ${icon("arrow", 12)}
+          </a>
+        </div>
         <p class="modal-note">
-          We’ll add this event to your TerpLink calendar and remind you before it starts.
+          We’ll add this event to your TerpLink calendar, generate your digital QR pass, and remind you before it starts.
         </p>
         ${errorMsg ? `<p class="form-error" role="alert">${escapeHtml(errorMsg)}</p>` : ""}
         <button class="primary-button" id="rsvp-confirm-btn" ${busy ? "disabled" : ""}>
@@ -155,15 +192,29 @@ export function renderRsvpModal(container, { event, passCode, userName, onConfir
               ${cells.map((dark) => `<i class="${dark ? "dark" : ""}"></i>`).join("")}
             </div>
             <div>
-              <span>ADMIT ONE</span>
+              <span>ADMIT ONE · ${escapeHtml(currentPassCode)}</span>
               <b>${escapeHtml(event.title)}</b>
               <small>${escapeHtml(userName)} · UMD Student</small>
             </div>
+          </div>
+          <div class="modal-cal-sync">
+            <a
+              class="chip-button"
+              href="${escapeAttr(googleCalendarUrl(event))}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ${icon("plus", 14)} Google Calendar
+            </a>
+            <button type="button" class="chip-button" id="rsvp-ics-btn">
+              ${icon("calendar", 14)} Apple / .ics
+            </button>
           </div>
           <button class="primary-button" id="rsvp-done-btn">Done</button>
         </div>
       `;
       dialog.querySelector(".modal-close").addEventListener("click", handleClose);
+      dialog.querySelector("#rsvp-ics-btn").addEventListener("click", () => downloadICS(event));
       dialog.querySelector("#rsvp-done-btn").addEventListener("click", handleClose);
     }
   }
@@ -174,7 +225,133 @@ export function renderRsvpModal(container, { event, passCode, userName, onConfir
 }
 
 // ============================================================================
-// 2. Group Modal (Create / Edit Organization)
+// 2. Organization Profile & Lineup Modal
+// ============================================================================
+export function renderOrgDetailModal(
+  container,
+  { org, events = [], following = false, onToggleFollow, onSelectEvent, onClose },
+) {
+  container.innerHTML = "";
+  let isFollowing = Boolean(following);
+  let memberCount = org.members || 1;
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop";
+  backdrop.setAttribute("role", "presentation");
+
+  const dialog = document.createElement("div");
+  dialog.className = "rsvp-modal manage-modal";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-label", `${org.name} organization profile`);
+  dialog.tabIndex = -1;
+
+  backdrop.appendChild(dialog);
+  container.appendChild(backdrop);
+
+  const cleanup = bindModalDismiss(backdrop, handleClose);
+
+  function handleClose() {
+    cleanup();
+    container.innerHTML = "";
+    if (onClose) onClose();
+  }
+
+  const orgEvents = events.filter(
+    (e) => e.organizationId === org.id || e.org.toLowerCase() === org.name.toLowerCase(),
+  );
+
+  function renderContent() {
+    dialog.innerHTML = `
+      <button class="modal-close" aria-label="Close">${icon("close")}</button>
+      <div class="modal-preview-row">
+        <span class="org-logo ${escapeAttr(org.color || "red")}">${escapeHtml(
+          org.letter || "T",
+        )}</span>
+        <div>
+          <p class="eyebrow">${escapeHtml(org.category.toUpperCase())} · ${formatMembers(
+            memberCount,
+          )} MEMBERS</p>
+          <h2>${escapeHtml(org.name)}</h2>
+        </div>
+      </div>
+      <p class="modal-event-desc">
+        ${escapeHtml(
+          org.description ||
+            "Official student organization registered with the University of Maryland.",
+        )}
+      </p>
+      <div class="modal-org-actions">
+        <button
+          type="button"
+          class="primary-button ${isFollowing ? "secondary-dark" : ""}"
+          id="org-modal-follow-btn"
+        >
+          ${isFollowing ? `${icon("check", 17)} Joined Organization` : `${icon("plus", 17)} Join Organization`}
+        </button>
+      </div>
+      <div class="modal-org-events">
+        <p class="eyebrow">UPCOMING LINEUP (${orgEvents.length})</p>
+        ${
+          orgEvents.length
+            ? `<div class="schedule-list">
+                ${orgEvents
+                  .map(
+                    (ev) => `
+                  <article class="schedule-item compact-schedule-item" data-event-id="${escapeAttr(
+                    ev.id,
+                  )}">
+                    <div class="schedule-main">
+                      <div class="date-tile static">
+                        <strong>${dayNum(ev.startsAt)}</strong>
+                        <span>${monthAbbr(ev.startsAt)}</span>
+                      </div>
+                      <div class="schedule-info">
+                        <b>${escapeHtml(ev.title)}</b>
+                        <div class="detail">${icon("clock", 14)} ${timeOf(ev.startsAt)}</div>
+                        <div class="detail">${icon("pin", 14)} ${escapeHtml(ev.location)}</div>
+                      </div>
+                      <button type="button" class="chip-button dark" data-open-event="${escapeAttr(
+                        ev.id,
+                      )}">
+                        RSVP ${icon("arrow", 14)}
+                      </button>
+                    </div>
+                  </article>
+                `,
+                  )
+                  .join("")}
+              </div>`
+            : `<p class="modal-note">No upcoming events scheduled yet. Follow this group for announcements!</p>`
+        }
+      </div>
+    `;
+
+    dialog.querySelector(".modal-close").addEventListener("click", handleClose);
+    dialog.querySelector("#org-modal-follow-btn").addEventListener("click", async () => {
+      if (onToggleFollow) {
+        await onToggleFollow(org);
+        isFollowing = !isFollowing;
+        memberCount = Math.max(0, memberCount + (isFollowing ? 1 : -1));
+        renderContent();
+      }
+    });
+    dialog.querySelectorAll("button[data-open-event]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const ev = orgEvents.find((x) => x.id === btn.dataset.openEvent);
+        handleClose();
+        if (ev && onSelectEvent) onSelectEvent(ev);
+      });
+    });
+  }
+
+  renderContent();
+  dialog.focus();
+  return { close: handleClose };
+}
+
+// ============================================================================
+// 3. Group Modal (Create / Edit Organization)
 // ============================================================================
 export function renderGroupModal(container, { initialGroup = null, onSubmit, onClose }) {
   container.innerHTML = "";
@@ -361,7 +538,7 @@ export function renderGroupModal(container, { initialGroup = null, onSubmit, onC
 }
 
 // ============================================================================
-// 3. Event Modal (Create / Edit Campus Event)
+// 4. Event Modal (Create / Edit Campus Event)
 // ============================================================================
 export function renderEventModal(
   container,

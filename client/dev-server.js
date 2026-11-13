@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT) || 5173;
+const PORT = Number(process.env.PORT) || 3000;
 const API_HOST = process.env.API_HOST || "localhost";
 const API_PORT = Number(process.env.API_PORT) || 5000;
 
@@ -64,7 +64,7 @@ const server = http.createServer((req, res) => {
 
   // Prevent serving dev-server.js or package.json directly
   const baseName = path.basename(filePath);
-  if (baseName === "dev-server.js" || baseName === "package.json") {
+  if (baseName === "dev-server.js" || baseName === "build.js" || baseName === "package.json") {
     filePath = path.join(__dirname, "index.html");
   }
 
@@ -84,7 +84,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  TerpLink HTML/CSS/JS Client running at http://localhost:${PORT}`);
+  console.log(`\n  TerpLink HTML/CSS/JS Client (client_sim) running at http://localhost:${PORT}`);
   console.log(`  Proxying /api -> http://${API_HOST}:${API_PORT}/api\n`);
 });
-

@@ -1,7 +1,12 @@
 import { api, setSessionToken } from "./api.js";
 import { icon, terpMark, wordmark } from "./icons.js";
 import { createDropdown } from "./dropdown.js";
-import { renderRsvpModal, renderGroupModal, renderEventModal } from "./modals.js";
+import {
+  renderRsvpModal,
+  renderOrgDetailModal,
+  renderGroupModal,
+  renderEventModal,
+} from "./modals.js";
 import {
   dayNum,
   monthAbbr,
@@ -23,8 +28,8 @@ import {
   filterEvents,
 } from "./format.js";
 
-const SPLASH_MIN_MS = 1800;
-const SPLASH_FADE_MS = 450;
+const SPLASH_MIN_MS = 1200;
+const SPLASH_FADE_MS = 400;
 
 const MOBILE_TABS = [
   { to: "/", icon: "home", label: "Home" },
@@ -70,6 +75,13 @@ const state = {
   // Auth
   status: "loading", // "loading" | "authenticated" | "anonymous"
   user: null,
+  adminMode: (() => {
+    try {
+      return localStorage.getItem("tl_admin_mode") === "true";
+    } catch {
+      return false;
+    }
+  })(),
   authConfig: { googleClientId: null, allowedDomain: "umd.edu" },
   minElapsed: false,
   splashGone: false,
@@ -122,8 +134,38 @@ function registerDropdown(dd) {
 // ============================================================================
 // Derived State Helpers
 // ============================================================================
+function canToggleAdmin(u = state.user) {
+  if (!u) return false;
+  const email = (u.email || "").trim().toLowerCase();
+  return Boolean(
+    email === "jahnavi5@umd.edu" ||
+      email === "jahnavi5@terpmail.umd.edu" ||
+      u.isAdmin ||
+      u.role === "admin",
+  );
+}
+
 function isAdminUser(u = state.user) {
-  return Boolean(u?.isAdmin || u?.role === "admin");
+  return Boolean(canToggleAdmin(u) && state.adminMode);
+}
+
+function canManageItem(item) {
+  if (!item) return false;
+  if (canToggleAdmin()) return isAdminUser();
+  return Boolean(item.canManage);
+}
+
+function setAdminMode(nextVal) {
+  const next = typeof nextVal === "boolean" ? nextVal : !state.adminMode;
+  state.adminMode = next;
+  try {
+    localStorage.setItem("tl_admin_mode", String(next));
+  } catch {
+    // ignore storage errors
+  }
+  updateShellChrome();
+  refreshCurrentPage();
+  notify(next ? "Admin mode enabled — edit & manage buttons active" : "Switched to Normal user view");
 }
 
 function getSavedSet() {
@@ -271,6 +313,7 @@ async function toggleSave(eventId) {
       ? await api.del(`/events/${eventId}/save`)
       : await api.put(`/events/${eventId}/save`);
     state.user = res.user;
+    notify(isSaved ? "Removed from saved events" : "Event saved to your calendar");
     refreshCurrentPage();
   } catch (err) {
     state.user = { ...state.user, savedEvents: prevSaved };
@@ -300,6 +343,22 @@ function openRsvp(event) {
         if (handleAuthError(err)) return {};
         throw err;
       }
+    },
+  });
+}
+
+function openOrgDetail(org) {
+  const modalRoot = document.getElementById("modal-root");
+  if (!modalRoot || !org) return;
+  renderOrgDetailModal(modalRoot, {
+    org,
+    events: state.events,
+    following: getFollowSet().has(org.id),
+    onToggleFollow: async (targetOrg) => {
+      await toggleFollow(targetOrg);
+    },
+    onSelectEvent: (ev) => {
+      openRsvp(ev);
     },
   });
 }
@@ -722,7 +781,6 @@ function ensureShellMounted() {
     const p = getPathname();
     if (p !== "/" && p !== "/discover") {
       navigate("/discover");
-      // Keep focus in the header search input
       desktopSearchInput.focus();
     } else {
       syncSearchInputs(desktopSearchInput);
@@ -743,25 +801,34 @@ function ensureShellMounted() {
     navigate("/profile");
   });
 
-  // Delegated click handler on #page-outlet for EventCard buttons
+  // Delegated click handler on #page-outlet for EventCard buttons & card details
   appContainerEl.querySelector("#page-outlet").addEventListener("click", (e) => {
     const saveBtn = e.target.closest('[data-action="toggle-save"]');
     if (saveBtn) {
+      e.stopPropagation();
       toggleSave(saveBtn.dataset.eventId);
       return;
     }
     const rsvpBtn = e.target.closest('[data-action="rsvp-event"]');
     if (rsvpBtn) {
+      e.stopPropagation();
       const ev = state.events.find((x) => x.id === rsvpBtn.dataset.eventId);
       if (ev) openRsvp(ev);
       return;
     }
     const editBtn = e.target.closest('[data-action="edit-event"]');
     if (editBtn) {
+      e.stopPropagation();
       const ev =
         state.events.find((x) => x.id === editBtn.dataset.eventId) ||
         state.admin.data?.events?.find((x) => x.id === editBtn.dataset.eventId);
       if (ev) openEventModal(ev);
+      return;
+    }
+    const cardTrigger = e.target.closest("[data-open-event-id]");
+    if (cardTrigger) {
+      const ev = state.events.find((x) => x.id === cardTrigger.dataset.openEventId);
+      if (ev) openRsvp(ev);
     }
   });
 
@@ -819,10 +886,11 @@ function updateShellChrome() {
         <button
           data-route="${tab.to}"
           class="${active ? "active" : ""}"
+          aria-label="${escapeAttr(tab.label)}"
+          title="${escapeAttr(tab.label)}"
           ${active ? 'aria-current="page"' : ""}
         >
-          ${icon(tab.icon)}
-          <span>${escapeHtml(tab.label)}</span>
+          ${icon(tab.icon, 22)}
         </button>
       `;
     }).join("");
@@ -837,7 +905,7 @@ function updateShellChrome() {
 function renderEventCardHtml(event, { saved, going }) {
   return `
     <article class="event-card">
-      <div class="card-image">
+      <div class="card-image" data-open-event-id="${escapeAttr(event.id)}">
         <img src="${escapeAttr(event.image)}" alt="" loading="lazy" />
         <div class="date-tile">
           <strong>${dayNum(event.startsAt)}</strong>
@@ -859,7 +927,7 @@ function renderEventCardHtml(event, { saved, going }) {
       </div>
       <div class="card-body">
         <p class="card-org">${escapeHtml(event.org)}</p>
-        <h3>${escapeHtml(event.title)}</h3>
+        <h3 data-open-event-id="${escapeAttr(event.id)}">${escapeHtml(event.title)}</h3>
         <div class="detail">
           ${icon("clock", 16)} ${timeOf(event.startsAt)}
         </div>
@@ -877,7 +945,7 @@ function renderEventCardHtml(event, { saved, going }) {
           </div>
           <div class="card-footer-actions">
             ${
-              event.canManage
+              canManageItem(event)
                 ? `
               <button
                 type="button"
@@ -1096,7 +1164,7 @@ function renderHomePage() {
             .slice(0, 3)
             .map(
               (org) => `
-            <div class="org-item" role="link" tabindex="0">
+            <div class="org-item" role="link" tabindex="0" data-org-id="${escapeAttr(org.id)}">
               <span class="org-logo ${escapeAttr(org.color)}">${escapeHtml(org.letter)}</span>
               <div>
                 <b>${escapeHtml(org.name)}</b>
@@ -1167,10 +1235,20 @@ function renderHomePage() {
 
   const orgList = outlet.querySelector("#home-org-list");
   orgList.addEventListener("click", (e) => {
-    if (e.target.closest(".org-item")) navigate("/groups");
+    const item = e.target.closest(".org-item");
+    if (!item) return;
+    const org = state.organizations.find((o) => o.id === item.dataset.orgId);
+    if (org) openOrgDetail(org);
+    else navigate("/groups");
   });
   orgList.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && e.target.closest(".org-item")) navigate("/groups");
+    if (e.key === "Enter") {
+      const item = e.target.closest(".org-item");
+      if (!item) return;
+      const org = state.organizations.find((o) => o.id === item.dataset.orgId);
+      if (org) openOrgDetail(org);
+      else navigate("/groups");
+    }
   });
 
   updateHomeFeedResults();
@@ -1578,13 +1656,13 @@ function updateGroupsDirectoryList() {
             const following = followSet.has(org.id);
             return `
               <article class="group-card" data-org-id="${escapeAttr(org.id)}">
-                <span class="org-logo ${escapeAttr(org.color)}">${escapeHtml(org.letter)}</span>
+                <span class="org-logo ${escapeAttr(org.color)}" data-group-action="view-org" data-org-id="${escapeAttr(org.id)}" style="cursor:pointer">${escapeHtml(org.letter)}</span>
                 <div class="group-info">
-                  <b>${escapeHtml(org.name)}</b>
+                  <b data-group-action="view-org" data-org-id="${escapeAttr(org.id)}" style="cursor:pointer">${escapeHtml(org.name)}</b>
                   <span>${escapeHtml(org.category)} · ${formatMembers(org.members)} members</span>
                   ${org.description ? `<p>${escapeHtml(org.description)}</p>` : ""}
                   ${
-                    org.canManage
+                    canManageItem(org)
                       ? `
                     <div class="group-owner-bar">
                       <button type="button" class="chip-button dark" data-group-action="post-event" data-org-id="${escapeAttr(org.id)}">
@@ -1637,7 +1715,7 @@ function renderGroupsPage() {
 
   const myManagedEvents = state.events.filter(
     (e) =>
-      e.canManage &&
+      canManageItem(e) &&
       (e.createdBy === state.user.id ||
         state.myOrganizations.some((o) => o.id === e.organizationId)),
   );
@@ -1902,33 +1980,36 @@ function renderGroupsPage() {
 
   // Delegated actions for both tabs
   outlet.querySelector("main").addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-group-action]");
-    if (!btn) return;
-    const action = btn.dataset.groupAction;
+    const el = e.target.closest("[data-group-action]");
+    if (!el) return;
+    const action = el.dataset.groupAction;
     const findOrg = (id) =>
       state.organizations.find((o) => o.id === id) ||
       state.myOrganizations.find((o) => o.id === id);
 
-    if (action === "toggle-follow") {
-      const org = findOrg(btn.dataset.orgId);
+    if (action === "view-org") {
+      const org = findOrg(el.dataset.orgId);
+      if (org) openOrgDetail(org);
+    } else if (action === "toggle-follow") {
+      const org = findOrg(el.dataset.orgId);
       if (org) toggleFollow(org);
     } else if (action === "post-event") {
-      openEventModal(null, btn.dataset.orgId);
+      openEventModal(null, el.dataset.orgId);
     } else if (action === "edit-org") {
-      const org = findOrg(btn.dataset.orgId);
+      const org = findOrg(el.dataset.orgId);
       if (org) openGroupModal(org);
     } else if (action === "delete-org") {
-      const org = findOrg(btn.dataset.orgId);
+      const org = findOrg(el.dataset.orgId);
       if (org) deleteGroup(org);
     } else if (action === "new-group") {
       openGroupModal(null);
     } else if (action === "new-event") {
       openEventModal(null);
     } else if (action === "edit-event") {
-      const ev = state.events.find((x) => x.id === btn.dataset.eventId);
+      const ev = state.events.find((x) => x.id === el.dataset.eventId);
       if (ev) openEventModal(ev);
     } else if (action === "delete-event") {
-      const ev = state.events.find((x) => x.id === btn.dataset.eventId);
+      const ev = state.events.find((x) => x.id === el.dataset.eventId);
       if (ev) deleteEvent(ev);
     }
   });
@@ -1937,13 +2018,56 @@ function renderGroupsPage() {
 // ============================================================================
 // Page 5: Profile (/profile)
 // ============================================================================
+const PREF_CATEGORIES = [
+  "Social",
+  "Free food",
+  "Arts & Music",
+  "Career",
+  "Academic",
+  "Cultural",
+  "Technology",
+  "Sports",
+];
+
+function getUserPrefs() {
+  const key = `tl_user_prefs_${state.user?.id || "default"}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    /* ignore */
+  }
+  return {
+    favoriteCategories: ["Social", "Free food", "Arts & Music"],
+    notifications: { reminders: true, clubUpdates: true, freeFoodAlerts: true },
+  };
+}
+
+function saveUserPrefs(prefs) {
+  const key = `tl_user_prefs_${state.user?.id || "default"}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+}
+
 function renderProfilePage() {
   cleanupPageDropdowns();
   const outlet = document.getElementById("page-outlet");
   if (!outlet) return;
 
   const isAdmin = isAdminUser();
+  const canToggle = canToggleAdmin();
   const u = state.user;
+  const prefs = getUserPrefs();
+  const favSet = new Set(prefs.favoriteCategories || ["Social", "Free food"]);
+  const notif = {
+    reminders: true,
+    clubUpdates: true,
+    freeFoodAlerts: true,
+    ...(prefs.notifications || {}),
+  };
 
   outlet.innerHTML = `
     <main class="page">
@@ -1986,6 +2110,40 @@ function renderProfilePage() {
       </section>
 
       ${
+        canToggle
+          ? `
+        <section class="role-toggle-card ${isAdmin ? "admin-active" : ""}">
+          <div class="role-toggle-info">
+            <p class="eyebrow">ACCOUNT VIEW MODE · ${escapeHtml(u.email.toUpperCase())}</p>
+            <h2>${isAdmin ? "Admin User Mode Active" : "Normal Student View"}</h2>
+            <p>
+              ${
+                isAdmin
+                  ? "Edit & management controls are enabled on event cards, campus groups, and the Admin Portal."
+                  : "Enable Admin mode to show Edit buttons on event cards, manage campus groups, and access the Admin Portal."
+              }
+            </p>
+          </div>
+          <div class="role-toggle-control" role="group" aria-label="Switch between Normal and Admin user mode">
+            <span class="role-mode-label ${!isAdmin ? "active" : ""}" data-role-mode="normal">Normal</span>
+            <button
+              type="button"
+              role="switch"
+              id="profile-admin-mode-toggle"
+              aria-checked="${isAdmin}"
+              aria-label="Toggle Admin user mode"
+              class="role-switch ${isAdmin ? "on" : ""}"
+            >
+              <span class="role-switch-thumb"></span>
+            </button>
+            <span class="role-mode-label ${isAdmin ? "active admin" : ""}" data-role-mode="admin">Admin</span>
+          </div>
+        </section>
+      `
+          : ""
+      }
+
+      ${
         isAdmin
           ? `
         <section class="admin-callout">
@@ -2005,6 +2163,71 @@ function renderProfilePage() {
       `
           : ""
       }
+
+      <section class="preferences-card">
+        <div>
+          <p class="eyebrow">PERSONALIZATION & ALERTS</p>
+          <h2>Favorite campus categories</h2>
+        </div>
+        <div class="pref-pills" id="profile-fav-pills">
+          ${PREF_CATEGORIES.map((cat) => {
+            const active = favSet.has(cat);
+            return `
+              <button
+                type="button"
+                class="pref-pill ${active ? "active" : ""}"
+                data-fav-cat="${escapeAttr(cat)}"
+                aria-pressed="${active}"
+              >
+                ${cat === "Free food" ? '<span class="tiny-dot"></span>' : ""}
+                ${escapeHtml(cat)}
+              </button>
+            `;
+          }).join("")}
+        </div>
+
+        <div class="pref-toggles">
+          <div class="pref-toggle-row">
+            <div>
+              <span>Event reminders</span>
+              <small>Notify 1 hour before RSVP’d events start</small>
+            </div>
+            <button
+              type="button"
+              class="pref-switch ${notif.reminders ? "on" : ""}"
+              data-notif-key="reminders"
+              aria-pressed="${notif.reminders}"
+              aria-label="Toggle event reminders"
+            ></button>
+          </div>
+          <div class="pref-toggle-row">
+            <div>
+              <span>Organization updates</span>
+              <small>New events posted by groups you’ve joined</small>
+            </div>
+            <button
+              type="button"
+              class="pref-switch ${notif.clubUpdates ? "on" : ""}"
+              data-notif-key="clubUpdates"
+              aria-pressed="${notif.clubUpdates}"
+              aria-label="Toggle organization updates"
+            ></button>
+          </div>
+          <div class="pref-toggle-row">
+            <div>
+              <span>Free food alerts</span>
+              <small>Instant alert when campus events offer free food</small>
+            </div>
+            <button
+              type="button"
+              class="pref-switch ${notif.freeFoodAlerts ? "on" : ""}"
+              data-notif-key="freeFoodAlerts"
+              aria-pressed="${notif.freeFoodAlerts}"
+              aria-label="Toggle free food alerts"
+            ></button>
+          </div>
+        </div>
+      </section>
 
       <section class="settings-list">
         ${
@@ -2037,11 +2260,6 @@ function renderProfilePage() {
           <span>Publish a campus event</span>
           ${icon("chevron", 18)}
         </button>
-        <button data-profile-action="notifications">
-          ${icon("bell", 19)}
-          <span>Notifications</span>
-          ${icon("chevron", 18)}
-        </button>
         <button data-profile-action="logout">
           ${icon("logout", 19)}
           <span>Sign out</span>
@@ -2058,6 +2276,41 @@ function renderProfilePage() {
     </main>
   `;
 
+  const toggleBtn = outlet.querySelector("#profile-admin-mode-toggle");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => setAdminMode(!state.adminMode));
+  }
+  outlet.querySelectorAll("[data-role-mode]").forEach((lbl) => {
+    lbl.addEventListener("click", () => setAdminMode(lbl.dataset.roleMode === "admin"));
+  });
+
+  outlet.querySelector("#profile-fav-pills").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-fav-cat]");
+    if (!btn) return;
+    const cat = btn.dataset.favCat;
+    const currentPrefs = getUserPrefs();
+    const next = new Set(currentPrefs.favoriteCategories || []);
+    if (next.has(cat)) next.delete(cat);
+    else next.add(cat);
+    saveUserPrefs({ ...currentPrefs, favoriteCategories: Array.from(next) });
+    notify("Saved category preferences");
+    renderProfilePage();
+  });
+
+  outlet.querySelectorAll("button[data-notif-key]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.notifKey;
+      const currentPrefs = getUserPrefs();
+      const current = Boolean(currentPrefs.notifications?.[key] ?? true);
+      saveUserPrefs({
+        ...currentPrefs,
+        notifications: { ...(currentPrefs.notifications || {}), [key]: !current },
+      });
+      notify("Updated notification settings");
+      renderProfilePage();
+    });
+  });
+
   outlet.querySelector("main").addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-profile-action]");
     if (!btn) return;
@@ -2066,7 +2319,6 @@ function renderProfilePage() {
     else if (action === "groups") navigate("/groups");
     else if (action === "new-group") openGroupModal(null);
     else if (action === "new-event") openEventModal(null);
-    else if (action === "notifications") notify("Event reminders are on");
     else if (action === "logout") logout();
     else if (action === "logout-all") logoutEverywhere(btn);
   });
@@ -2095,7 +2347,7 @@ function renderAdminBody() {
   }
 
   if (loading) {
-    html += `<p class="result-count">Loading live MongoDB data…</p>`;
+    html += `<p class="result-count">Loading campus administration data…</p>`;
   } else if (tab === "pending") {
     if (pending.length) {
       html += `
@@ -2266,7 +2518,7 @@ function renderAdminBody() {
                 data-admin-action="delete-event"
                 data-event-id="${escapeAttr(event.id)}"
               >
-                ${icon("trash", 14)} Delete
+                ${icon("trash", 14)} Delete event
               </button>
             </div>
           </article>
@@ -2555,8 +2807,6 @@ async function boot() {
   const [cfg, me] = await Promise.allSettled([api.get("/auth/config"), api.get("/auth/me")]);
   if (cfg.status === "fulfilled" && cfg.value) {
     state.authConfig = cfg.value;
-  } else {
-    console.error("[auth] Failed to load /api/auth/config:", cfg.reason);
   }
 
   if (me.status === "fulfilled" && me.value?.user) {

@@ -1050,43 +1050,83 @@ main {
   }
   .mobile-nav {
     position: fixed;
-    z-index: 35;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 74px;
-    background: rgba(255, 255, 255, 0.96);
-    border-top: 1px solid #ddd9d2;
+    z-index: 40;
+    left: 50%;
+    right: auto;
+    bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+    transform: translateX(-50%);
+    width: min(calc(100vw - 44px), 340px);
+    height: 58px;
+    padding: 5px;
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.76) 0%,
+      rgba(247, 245, 240, 0.62) 100%
+    );
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+      0 16px 38px -6px rgba(18, 16, 14, 0.2),
+      0 4px 12px rgba(18, 16, 14, 0.08),
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.95),
+      inset 0 -1px 0.5px rgba(255, 255, 255, 0.4);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 8px 7px max(8px, env(safe-area-inset-bottom));
-    backdrop-filter: blur(16px);
+    gap: 4px;
+    align-items: stretch;
   }
   .mobile-nav button {
+    position: relative;
+    border-radius: 999px;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 3px;
-    color: #88827b;
+    color: rgba(34, 31, 28, 0.64);
+    transition:
+      color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      background 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .mobile-nav button:active {
+    transform: scale(0.93);
+  }
+  .mobile-nav button:hover:not(.active) {
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.4);
+  }
+  .mobile-nav button svg {
+    width: 22px;
+    height: 22px;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .mobile-nav button span {
-    font-size: 9px;
-    font-weight: 600;
+    display: none;
   }
   .mobile-nav button.active {
     color: var(--red);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(255, 244, 246, 0.88) 100%
+    );
+    box-shadow:
+      0 4px 12px rgba(226, 24, 51, 0.15),
+      0 1px 3px rgba(20, 18, 15, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 0 0 1px rgba(226, 24, 51, 0.14);
+  }
+  .mobile-nav button.active svg {
+    transform: scale(1.08);
+    filter: drop-shadow(0 2px 4px rgba(226, 24, 51, 0.2));
   }
   .mobile-nav button.active::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    width: 30px;
-    height: 2px;
-    background: var(--red);
+    display: none;
   }
   .toast {
-    bottom: 88px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
     white-space: nowrap;
   }
   .modal-backdrop {

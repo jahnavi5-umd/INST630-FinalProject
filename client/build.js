@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
 
-// Defaults to "" so Vercel's /api/* edge rewrite in client_html/vercel.json
+// Defaults to "" so Vercel's /api/* edge rewrite in client_sim/vercel.json
 // proxies requests same-origin to https://terplink-backend.vercel.app/api/*
 // without cross-origin CORS preflights. Can still be overridden via env vars.
 const apiUrl = (
@@ -68,5 +68,5 @@ fs.writeFileSync(
 );
 
 console.log(
-  `[client_html] Built static bundle to dist/ (API mode: ${apiUrl || "same-origin /api rewrite"})`,
+  `[client_sim] Built static bundle to dist/ (API mode: ${apiUrl || "same-origin /api rewrite"})`,
 );

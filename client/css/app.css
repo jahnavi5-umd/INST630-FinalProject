@@ -1339,3 +1339,398 @@ button:disabled {
   }
 }
 
+
+/* ---------- Simulated Google Sign-In & Account Chooser (client_sim) ---------- */
+.google-pill-btn {
+  width: 100%;
+  max-width: 380px;
+  height: 44px;
+  border-radius: 100px;
+  background: #131314;
+  color: #ffffff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+  box-shadow: 0 4px 16px rgba(19, 19, 20, 0.14);
+}
+.google-pill-btn:hover {
+  background: #272729;
+  transform: translateY(-1px);
+}
+.google-pill-btn svg {
+  flex: 0 0 auto;
+}
+.sim-quick-accounts {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sim-quick-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 2px;
+}
+.sim-account-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 13px;
+  background: white;
+  border: 1px solid #dfddd7;
+  text-align: left;
+}
+.sim-account-row:hover {
+  border-color: var(--ink);
+  background: #faf9f6;
+}
+.sim-account-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  font-family: "Manrope", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.sim-account-avatar.dark {
+  background: var(--ink);
+}
+.sim-account-avatar.muted {
+  background: #8a847d;
+}
+.sim-account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sim-account-info b {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sim-account-info span {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sim-role-tag {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 100px;
+  background: #fde8eb;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.sim-role-tag.admin {
+  background: #ffcf15;
+  color: #171615;
+}
+.sim-role-tag.blocked {
+  background: #eceae5;
+  color: #6d6964;
+}
+.sim-custom-form {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid #dfddd7;
+  display: grid;
+  gap: 8px;
+}
+.sim-custom-form input {
+  width: 100%;
+  border: 1px solid #d8d5cf;
+  border-radius: 9px;
+  background: #faf9f6;
+  padding: 8px 11px;
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+}
+.sim-custom-form input:focus {
+  border-color: var(--ink);
+  background: white;
+}
+.sim-custom-submit {
+  height: 36px;
+  border-radius: 100px;
+  background: var(--red);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sim-custom-submit:hover {
+  background: #c51129;
+}
+
+/* ---------- Event Details & Org Profile Modal Additions ---------- */
+.modal-event-desc {
+  margin-top: 13px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #4a4642;
+}
+.modal-event-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+.modal-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 100px;
+  background: #f3f1ed;
+  color: #4a4642;
+  font-size: 11px;
+  font-weight: 700;
+}
+.modal-meta-pill.highlight {
+  background: #ffcf15;
+  color: #171615;
+}
+.modal-meta-pill.map-link:hover {
+  background: var(--ink);
+  color: white;
+}
+.modal-cal-sync {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.primary-button.secondary-dark {
+  background: var(--ink);
+}
+.primary-button.secondary-dark:hover {
+  background: #2c2a27;
+}
+.modal-org-actions {
+  margin: 16px 0 20px;
+}
+.modal-org-events .eyebrow {
+  margin-bottom: 10px;
+}
+.compact-schedule-item {
+  padding: 11px 12px;
+}
+.compact-schedule-item .schedule-main {
+  grid-template-columns: 44px 1fr auto;
+}
+.card-image,
+.card-body h3 {
+  cursor: pointer;
+}
+
+/* ---------- Profile Personalization & Preferences ---------- */
+.preferences-card {
+  max-width: 760px;
+  margin: 14px 0;
+  padding: 20px;
+  background: var(--paper);
+  border: 1px solid #e3e1dc;
+  border-radius: 15px;
+  display: grid;
+  gap: 16px;
+}
+.preferences-card h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-top: 2px;
+}
+.pref-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.pref-pill {
+  padding: 7px 13px;
+  border-radius: 100px;
+  border: 1px solid #d8d5cf;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5c5854;
+  background: #faf9f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pref-pill.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+.pref-toggles {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #ebe9e5;
+  padding-top: 14px;
+}
+.pref-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pref-toggle-row small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.pref-switch {
+  width: 42px;
+  height: 24px;
+  border-radius: 100px;
+  background: #d8d5cf;
+  position: relative;
+  flex: 0 0 auto;
+  transition: background 180ms ease;
+}
+.pref-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 180ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.pref-switch.on {
+  background: var(--red);
+}
+.pref-switch.on::after {
+  transform: translateX(18px);
+}
+
+/* ---------- Role Toggle Switch (jahnavi5@umd.edu Profile) ---------- */
+.role-toggle-card {
+  max-width: 760px;
+  margin: 14px 0;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: var(--paper);
+  border: 1px solid #e3e1dc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.role-toggle-card.admin-active {
+  border-color: var(--red);
+  background: #fff9fa;
+}
+.role-toggle-info {
+  flex: 1 1 240px;
+}
+.role-toggle-info .eyebrow {
+  margin-bottom: 4px;
+}
+.role-toggle-info h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
+.role-toggle-info p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.45;
+  max-width: 440px;
+}
+.role-toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  background: #f3f1ed;
+  border: 1px solid #dfddd7;
+  flex: 0 0 auto;
+}
+.role-mode-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #77716a;
+  cursor: pointer;
+  user-select: none;
+  transition: color 150ms ease;
+}
+.role-mode-label.active {
+  color: var(--ink);
+}
+.role-mode-label.active.admin {
+  color: var(--red);
+}
+.role-switch {
+  width: 46px;
+  height: 26px;
+  border-radius: 100px;
+  background: #c7c3bc;
+  position: relative;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  transition: background 180ms ease;
+  flex: 0 0 auto;
+}
+.role-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.role-switch.on {
+  background: var(--red);
+}
+.role-switch.on .role-switch-thumb {
+  transform: translateX(20px);
+}
+
