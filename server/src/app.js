@@ -46,6 +46,7 @@ export function createApp() {
       },
       // Required so the Google sign-in popup can post the credential back.
       crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+      crossOriginResourcePolicy: { policy: "cross-origin" },
       strictTransportSecurity: config.isProd ? { maxAge: 63072000, includeSubDomains: true } : false,
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     }),

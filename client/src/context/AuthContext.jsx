@@ -13,7 +13,11 @@ export function AuthProvider({ children }) {
     (async () => {
       const [cfg, me] = await Promise.allSettled([api.get("/auth/config"), api.get("/auth/me")]);
       if (cancelled) return;
-      if (cfg.status === "fulfilled") setAuthConfig(cfg.value);
+      if (cfg.status === "fulfilled") {
+        setAuthConfig(cfg.value);
+      } else {
+        console.error("[auth] Failed to load /api/auth/config:", cfg.reason);
+      }
       if (me.status === "fulfilled") {
         setUser(me.value.user);
         setStatus("authenticated");
