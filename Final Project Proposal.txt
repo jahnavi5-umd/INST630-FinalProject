@@ -1,0 +1,28 @@
+Initial Final Project Proposal. 
+What kind of web app are you going to build for your final project?
+I am going to build a mobile-optimized web application called "TerpLink Mobile" (or "TerpEvents"), designed to reimagine and streamline how University of Maryland (UMD) students discover, interact with, and attend campus events. While UMD's current TerpLink platform serves as a central directory for student organizations and events, its current browser-first interface can be cumbersome and lacks the seamless, engaging mobile experience that students naturally gravitate toward on their phones. This web app will feature a responsive, mobile-first design that makes exploring campus life as effortless as scrolling through social media.
+
+What is the purpose? What features do you hope to implement?
+Purpose: The primary goal is to bridge the engagement gap on campus by providing a fast, intuitive, and modern mobile platform that students actually want to open and use daily. By removing the friction of navigating a desktop-heavy portal on mobile screens, the app empowers students to stay connected with campus culture, track organization updates, and manage their involvement effortlessly.
+Key Features:
+Personalized Event Feed: A dynamic home feed tailored to student interests, majors, and followed organizations.
+One-Tap RSVP & Ticketing: Seamless RSVP functionality that instantly registers students for events and generates mobile-friendly digital passes/QR codes.
+Calendar Integration: A feature allowing users to add events directly to their personal calendars (Google Calendar, Apple Calendar, etc.) with automated reminders.
+Organization Hub: Directory pages for clubs and student orgs where users can view upcoming schedules, read announcements, and join groups.
+Interactive Search & Filtering: Filter events by category (academic, social, career, cultural), date, location, and free food availability.
+
+List all the things you hope your web app will be able to do.
+Allow users to log in securely using campus credentials (simulated or API-ready authentication).
+Display a curated, scrollable feed of upcoming campus events with rich media cards (images, tags, times, and locations).
+Provide detailed view pages for individual events containing descriptions, host org information, capacity counters, and maps/building directions.Enable users to click "RSVP" to instantly lock in their spot and track their registered events.
+Support instant calendar syncing so event details export cleanly to external calendar apps.
+Allow student organization leaders or administrators to post, edit, and manage upcoming events.
+Provide a "Saved Events" or "My Schedule" dashboard where students can view all their bookmarked and RSVP'd activities in one organized view.
+ 
+Describe the pages you think you'll include (home page, about page, shopping cart, etc.)   
+Home / Discover Page: The main landing feed showcasing trending events, "Happening Today" highlights, and personalized recommendations based on user interests.
+Event Details Page: A dedicated sub-page for a selected event providing deep-dive info, location maps, host contact details, and the primary RSVP action button.
+Explore / Search Page: A searchable directory equipped with filter tags (e.g., free food, tech, cultural, academic) to help students easily unearth niche clubs and activities.
+"My Events" / Schedule Page: A personal dashboard tracking the user's active RSVPs, bookmarks, and synced calendar items.
+Organization Directory & Profile Page: Pages dedicated to individual student clubs showcasing their mission, upcoming calendar lineup, and a "Join / Follow" toggle.
+Profile & Settings Page: A user configuration screen allowing students to select their favorite categories, notification preferences, and manage their account details.
