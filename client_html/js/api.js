@@ -3,13 +3,10 @@
 // fallback for browsers that block cross-origin cookies between separate deployments).
 // The X-Requested-With custom header is required by the server's CSRF guard.
 
-const DEFAULT_PROD_API = "https://terplink-backend.vercel.app";
-const isLocalhost =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
 const metaUrl = document.querySelector('meta[name="terplink-api-url"]')?.getAttribute("content") || "";
-const configuredUrl = String(window.TERPLINK_API_URL ?? metaUrl ?? "").trim();
-const rawBase = (configuredUrl || (isLocalhost ? "" : DEFAULT_PROD_API)).replace(/\/+$/, "");
+const rawBase = String(window.TERPLINK_API_URL ?? metaUrl ?? "")
+  .trim()
+  .replace(/\/+$/, "");
 const API_BASE = rawBase.endsWith("/api") ? rawBase.slice(0, -4) : rawBase;
 
 const TOKEN_STORAGE_KEY = "tl_session_token";

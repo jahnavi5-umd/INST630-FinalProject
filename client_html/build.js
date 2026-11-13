@@ -5,11 +5,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
 
+// Defaults to "" so Vercel's /api/* edge rewrite in client_html/vercel.json
+// proxies requests same-origin to https://terplink-backend.vercel.app/api/*
+// without cross-origin CORS preflights. Can still be overridden via env vars.
 const apiUrl = (
   process.env.TERPLINK_API_URL ||
   process.env.VITE_API_URL ||
   process.env.API_URL ||
-  "https://terplink-backend.vercel.app"
+  ""
 )
   .trim()
   .replace(/\/+$/, "");
@@ -33,4 +36,6 @@ indexHtml = indexHtml.replace(
 );
 fs.writeFileSync(path.join(distDir, "index.html"), indexHtml, "utf8");
 
-console.log(`[client_html] Built static bundle to dist/ (API URL: ${apiUrl})`);
+console.log(
+  `[client_html] Built static bundle to dist/ (API mode: ${apiUrl || "same-origin /api rewrite"})`,
+);
